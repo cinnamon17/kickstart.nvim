@@ -530,6 +530,15 @@ require('lazy').setup {
       --  - capabilities (table): Override fields in capabilities. Can be used to disable certain LSP features.
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
+      local project_name = vim.fn.fnamemodify(vim.fn.getcwd(), ':p:h:t')
+      local function get_os()
+        if jit.os == 'Linux' then
+          return '/home/nelson/.local/share/jdtls/' .. project_name
+        elseif jit.os == 'Windows' then
+          return 'C:\\Users\\nmoncadp\\AppData\\jdtls' .. project_name
+        end
+      end
+      local workspace_dir = get_os()
       local servers = {
         -- clangd = {},
         -- gopls = {},
@@ -544,6 +553,29 @@ require('lazy').setup {
         -- tsserver = {},
         --
 
+        intelephense = {},
+        jdtls = {
+
+          cmd = {
+            '/usr/local/src/jdk-21+35/bin/java',
+            '-Declipse.application=org.eclipse.jdt.ls.core.id1',
+            '-Dosgi.bundles.defaultStartLevel=4',
+            '-Declipse.product=org.eclipse.jdt.ls.core.product',
+            '-Dlog.protocol=true',
+            '-Dlog.level=ALL',
+            '-Xms1g',
+            '-Xmx2G',
+            '-jar',
+            '/home/nelson/.local/share/nvim/mason/packages/jdtls/plugins/org.eclipse.equinox.launcher_1.6.700.v20231214-2017.jar',
+            '-configuration',
+            '/home/nelson/.local/share/nvim/mason/packages/jdtls/config_linux/',
+            '-data',
+            workspace_dir,
+            '--add-modules=ALL-SYSTEM',
+            '--add-opens java.base/java.util=ALL-UNNAMED',
+            '--add-opens java.base/java.lang=ALL-UNNAMED',
+          },
+        },
         lua_ls = {
           -- cmd = {...},
           -- filetypes { ...},
