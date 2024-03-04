@@ -531,14 +531,42 @@ require('lazy').setup {
       --  - settings (table): Override the default settings passed when initializing the server.
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local project_name = vim.fn.fnamemodify(vim.fn.getcwd(), ':p:h:t')
-      local function get_os()
+      local function get_workspace_dir()
         if jit.os == 'Linux' then
           return '/home/nelson/.local/share/jdtls/' .. project_name
         elseif jit.os == 'Windows' then
           return 'C:\\Users\\nmoncadp\\AppData\\jdtls' .. project_name
         end
       end
-      local workspace_dir = get_os()
+
+      local function get_jdk_path()
+        if jit.os == 'Linux' then
+          return '/usr/local/src/jdk-21+35/bin/java'
+        elseif jit.os == 'Windows' then
+          return 'c:\\Program Files\\Eclipse Adoptium\\jdk-21.0.1.12-hotspot\\bin\\java'
+        end
+      end
+
+      local function get_os_configuration()
+        if jit.os == 'Linux' then
+          return '/home/nelson/.local/share/nvim/mason/packages/jdtls/config_linux/'
+        elseif jit.os == 'Windows' then
+          return 'C:\\Users\\nmoncadp\\AppData\\Local\\nvim-data\\mason\\packages\\jdtls\\config_win'
+        end
+      end
+
+      local function get_jdtls_jar()
+        if jit.os == 'Linux' then
+          return '/home/nelson/.local/share/nvim/mason/packages/jdtls/plugins/org.eclipse.equinox.launcher_1.6.700.v20231214-2017.jar'
+        elseif jit.os == 'Windows' then
+          return 'C:\\Users\\nmoncadp\\AppData\\Local\\nvim-data\\mason\\packages\\jdtls\\plugins\\org.eclipse.equinox.launcher_1.6.700.v20231214-2017.jar'
+        end
+      end
+
+      local workspace_dir = get_workspace_dir()
+      local jdk_path = get_jdk_path()
+      local configuration = get_os_configuration()
+      local jdtls_jar = get_jdtls_jar()
       local servers = {
         -- clangd = {},
         -- gopls = {},
@@ -557,7 +585,7 @@ require('lazy').setup {
         jdtls = {
 
           cmd = {
-            '/usr/local/src/jdk-21+35/bin/java',
+            jdk_path,
             '-Declipse.application=org.eclipse.jdt.ls.core.id1',
             '-Dosgi.bundles.defaultStartLevel=4',
             '-Declipse.product=org.eclipse.jdt.ls.core.product',
@@ -566,9 +594,9 @@ require('lazy').setup {
             '-Xms1g',
             '-Xmx2G',
             '-jar',
-            '/home/nelson/.local/share/nvim/mason/packages/jdtls/plugins/org.eclipse.equinox.launcher_1.6.700.v20231214-2017.jar',
+            jdtls_jar,
             '-configuration',
-            '/home/nelson/.local/share/nvim/mason/packages/jdtls/config_linux/',
+            configuration,
             '-data',
             workspace_dir,
             '--add-modules=ALL-SYSTEM',
