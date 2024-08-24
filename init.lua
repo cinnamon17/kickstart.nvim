@@ -595,7 +595,6 @@ require('lazy').setup {
                   {
                     name = 'JavaSE-1.8',
                     path = '/usr/local/src/jdk-8.0.402+6/',
-                    default = true,
                   },
                   {
                     name = 'JavaSE-11',
