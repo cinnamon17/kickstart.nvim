@@ -559,7 +559,7 @@ require('lazy').setup {
 
       local function get_jdtls_jar()
         if jit.os == 'Linux' then
-          return '/home/nelson/.local/share/nvim/mason/packages/jdtls/plugins/org.eclipse.equinox.launcher_1.6.700.v20231214-2017.jar'
+          return '/home/nelson/.local/share/nvim/mason/packages/jdtls/plugins/org.eclipse.equinox.launcher_1.6.900.v20240613-2009.jar'
         elseif jit.os == 'Windows' then
           return 'C:\\Users\\nmoncadp\\AppData\\Local\\nvim-data\\mason\\packages\\jdtls\\plugins\\org.eclipse.equinox.launcher_1.6.700.v20231214-2017.jar'
         end
@@ -585,7 +585,34 @@ require('lazy').setup {
 
         intelephense = {},
         jdtls = {
-
+          settings = {
+            java = {
+              configuration = {
+                -- See https://github.com/eclipse/eclipse.jdt.ls/wiki/Running-the-JAVA-LS-server-from-the-command-line#initialize-request
+                -- And search for `interface RuntimeOption`
+                -- The `name` is NOT arbitrary, but must match one of the elements from `enum ExecutionEnvironment` in the link above
+                runtimes = {
+                  {
+                    name = 'JavaSE-1.8',
+                    path = '/usr/local/src/jdk-8.0.402+6/',
+                    default = true,
+                  },
+                  {
+                    name = 'JavaSE-11',
+                    path = '/usr/local/src/jdk-11.0.24+8/',
+                  },
+                  {
+                    name = 'JavaSE-17',
+                    path = '/usr/local/src/jdk-17.0.10+7/',
+                  },
+                  {
+                    name = 'JavaSE-21',
+                    path = '/usr/local/src/jdk-21+35/',
+                  },
+                },
+              },
+            },
+          },
           cmd = {
             jdk_path,
             '-Declipse.application=org.eclipse.jdt.ls.core.id1',
@@ -593,17 +620,18 @@ require('lazy').setup {
             '-Declipse.product=org.eclipse.jdt.ls.core.product',
             '-Dlog.protocol=true',
             '-Dlog.level=ALL',
-            '-Xms1g',
-            '-Xmx2G',
+            '-Xmx1G',
+            '--add-modules=ALL-SYSTEM',
+            '--add-opens',
+            'java.base/java.util=ALL-UNNAMED',
+            '--add-opens',
+            'java.base/java.lang=ALL-UNNAMED',
             '-jar',
             jdtls_jar,
             '-configuration',
             configuration,
             '-data',
             workspace_dir,
-            '--add-modules=ALL-SYSTEM',
-            '--add-opens java.base/java.util=ALL-UNNAMED',
-            '--add-opens java.base/java.lang=ALL-UNNAMED',
           },
         },
         lua_ls = {
