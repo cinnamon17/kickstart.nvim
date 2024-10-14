@@ -91,7 +91,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.opt`
@@ -319,7 +319,7 @@ require('lazy').setup({
       -- Document existing key chains
       spec = {
         { '<leader>c', group = '[C]ode', mode = { 'n', 'x' } },
-        { '<leader>d', group = '[D]ocument' },
+        --{ '<leader>d', group = '[D]ocument' },
         { '<leader>r', group = '[R]ename' },
         { '<leader>s', group = '[S]earch' },
         { '<leader>w', group = '[W]orkspace' },
@@ -329,6 +329,7 @@ require('lazy').setup({
     },
   },
 
+  { 'mfussenegger/nvim-dap' },
   -- NOTE: Plugins can specify dependencies.
   --
   -- The dependencies are proper plugin specifications as well - anything
@@ -745,6 +746,164 @@ require('lazy').setup({
       --
       --  You can press `g?` for help in this menu.
       require('mason').setup()
+      local dap, dapui, hydra = require 'dap', require 'dapui', require 'hydra'
+
+      -- Setup Telescope dap extension
+      local ok_telescope, telescope = pcall(require, 'telescope')
+      if ok_telescope then
+        telescope.load_extension 'dap'
+      end
+
+      -- Setup cmp dap
+      local ok_cmp, cmp = pcall(require, 'cmp')
+      if ok_cmp then
+        cmp.setup.filetype({ 'dap-repl', 'dapui_watches' }, {
+          sources = cmp.config.sources({
+            { name = 'dap' },
+          }, {
+            { name = 'buffer' },
+          }),
+        })
+      end
+
+      -- Set Icons
+      vim.api.nvim_call_function('sign_define', { 'DapBreakpoint', { linehl = '', text = '', texthl = 'diffRemoved', numhl = '' } })
+
+      vim.api.nvim_call_function('sign_define', { 'DapBreakpointCondition', { linehl = '', text = '', texthl = 'diffRemoved', numhl = '' } })
+
+      vim.api.nvim_call_function('sign_define', { 'DapLogPoint', { linehl = '', text = '', texthl = 'diffRemoved', numhl = '' } })
+
+      vim.api.nvim_call_function('sign_define', { 'DapStopped', { linehl = 'GitSignsChangeVirtLn', text = '', texthl = 'diffChanged', numhl = '' } })
+
+      vim.api.nvim_call_function('sign_define', { 'DapBreakpointRejected', { linehl = '', text = '', texthl = '', numhl = '' } })
+
+      -- Setup DAPUI
+      dapui.setup {
+        icons = { collapsed = '', current_frame = '', expanded = '' },
+        layouts = {
+          {
+            elements = { 'scopes', 'watches', 'stacks', 'breakpoints' },
+            size = 80,
+            position = 'left',
+          },
+          { elements = { 'console', 'repl' }, size = 0.25, position = 'bottom' },
+        },
+        render = { indent = 2 },
+      }
+
+      -- Setup Virtual Text
+      require('nvim-dap-virtual-text').setup {}
+
+      -- Added event for open DAUI
+      dap.listeners.after.event_initialized['dapui_config'] = function()
+        dapui.open()
+      end
+
+      -- Menu
+      local hint = [[
+ Nvim DAP
+ _d_: Start/Continue  _j_: StepOver _k_: StepOut _l_: StepInto ^
+ _bp_: Toggle Breakpoint  _bc_: Conditional Breakpoint ^
+ _?_: log point ^
+ _c_: Run To Cursor ^
+ _h_: Show information of the variable under the cursor ^
+ _x_: Stop Debbuging ^
+ ^^                                                      _<Esc>_
+]]
+
+      hydra {
+        name = 'dap',
+        hint = hint,
+        mode = 'n',
+        config = {
+          color = 'blue',
+          invoke_on_body = true,
+          hint = {
+            border = 'rounded',
+            position = 'bottom',
+          },
+        },
+        body = '<leader>d',
+        heads = {
+          { 'd', dap.continue },
+          { 'bp', dap.toggle_breakpoint },
+          { 'l', dap.step_into },
+          { 'j', dap.step_over },
+          { 'k', dap.step_out },
+          { 'h', dapui.eval },
+          { 'c', dap.run_to_cursor },
+          {
+            'bc',
+            function()
+              vim.ui.input({ prompt = 'Condition: ' }, function(condition)
+                dap.set_breakpoint(condition)
+              end)
+            end,
+          },
+          {
+            '?',
+            function()
+              vim.ui.input({ prompt = 'Log: ' }, function(log)
+                dap.set_breakpoint(nil, nil, log)
+              end)
+            end,
+          },
+          {
+            'x',
+            function()
+              dap.terminate()
+              dapui.close {}
+              dap.clear_breakpoints()
+            end,
+          },
+
+          { '<Esc>', nil, { exit = true } },
+        },
+      }
+
+      -- Configure the debugger adapter for PHP
+      dap.adapters.php = {
+        type = 'executable',
+        command = 'node',
+        args = {
+          require('mason-registry').get_package('php-debug-adapter'):get_install_path() .. '/extension/out/phpDebug.js',
+        },
+      }
+
+      -- Debug configurations specific to PHP
+      dap.configurations.php = {
+        {
+          type = 'php',
+          request = 'launch',
+          name = 'Laravel',
+          hostname = '127.0.0.1',
+          port = 9003,
+          pathMappings = {
+            ['/home/nelson/Documentos/symfony-api'] = '${workspaceFolder}',
+          },
+        },
+        {
+          type = 'php',
+          request = 'launch',
+          name = 'Symfony',
+          hostname = '127.0.0.1',
+          port = 9003,
+          pathMappings = {
+            ['/home/nelson/Documentos/symfony-api'] = '${workspaceFolder}',
+          },
+        },
+        {
+          name = 'Launch currently open script',
+          type = 'php',
+          request = 'launch',
+          hostname = '127.0.0.1',
+          program = '${file}',
+          log = true,
+          port = 9003,
+          cwd = '${workspaceFolder}',
+          console = 'integratedTerminal',
+        },
+      }
 
       -- You can add other tools here that you want Mason to install
       -- for you, so that they are available from within Neovim.
@@ -1033,7 +1192,7 @@ require('lazy').setup({
   --
   --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
   --    For additional information, see `:help lazy.nvim-lazy.nvim-structuring-your-plugins`
-  -- { import = 'custom.plugins' },
+  { import = 'custom.plugins' },
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
